@@ -1,11 +1,11 @@
 const { createLogger, format, transports } = require('winston');
 
 // Set default log level for file and console transports
-const logFileLevel = process.env.NODEAPP_LOG_FILE_LEVEL || 'error';
-const logConsoleLevel = process.env.NODEAPP_LOG_CONSOLE_LEVEL || 'debug';
+const logFileLevel = process.env.AUSTERA_BACKEND_LOG_FILE_LEVEL || 'error';
+const logConsoleLevel = process.env.AUSTERA_BACKEND_LOG_CONSOLE_LEVEL || 'debug';
 
 // Set log file path
-const logFilePath = process.env.NODEAPP_LOG_FILE_PATH || './nodeapp.log';
+const logFilePath = process.env.AUSTERA_BACKEND_LOG_FILE_PATH || './austera-backend.log';
 
 // Create a format without color for file transport
 const fileFormat = format.combine(
