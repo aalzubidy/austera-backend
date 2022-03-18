@@ -1,0 +1,61 @@
+authentication
+- add user
+- login user
+- logout user
+- renew token by url
+- renew token by cookie
+- verify token
+- get user
+- reset password
+- change password
+- delete account
+
+notifications
+- create a new notifications
+- update notification status
+- delete notification
+
+albums
+- create a new album
+- delete an album
+- update album information
+- get user albums
+- get an album
+
+pictures
+- upload a new picture
+- delete a picture
+- add picture(s) to an album
+- remove picture(s) from an album
+- edit picture information
+- get user temporary pictures
+- schedule picture to delete
+- report a picture
+- copy picture
+- delete tag
+- add tag
+
+comments
+- create a new comment
+- get all comments on a picture
+- delete a comment
+- report a comment
+- edit a comment
+
+users
+- get user
+- edit user information
+- report user
+- block user
+- unblock user
+- get all blocked users
+- subscribe to a user
+- unsubscribe from a user
+- get all user subscriptions
+- get all user friends
+- search by name
+- search by email
+- search by phone number
+
+feed
+- get all my feed posts
