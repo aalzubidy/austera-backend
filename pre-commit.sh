@@ -18,7 +18,7 @@ elif [ "${TYPE[0]}" = "minor" ]; then
 elif [ "${TYPE[0]}" = "major" ]; then
 	npm --no-git-tag-version version major
 else
-	npm --no-git-tag-version version minor
+	npm --no-git-tag-version version patch
 fi
 
 # Attach updated files
