@@ -15,7 +15,7 @@ const { logger } = require('./utils/logger');
 const { routesLogger } = require('./utils/routesLogger');
 
 // Require routes
-const main = require('./routes/main.js');
+const systemRoutes = require('./routes/system');
 
 // Application Setup
 const app = express();
@@ -58,6 +58,9 @@ const upload = multer({
 }).single('txtFile');
 
 // Routes
+
+// System and stats routes
+app.use(systemRoutes);
 
 // Index Route
 app.get('/', async function (req, res) {

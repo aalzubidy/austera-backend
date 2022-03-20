@@ -1,28 +1,7 @@
-const moment = require('moment');
+const systemSrc = require('./src/systemSrc');
 
-function checkItem(i){
-  if( i === 'b' ){
-   throw new Error('error');
-  } else {
-    return true;
-  }
+const test = async (fileSrc, funName) => {
+  console.log(await fileSrc[funName].apply(this, []));
 }
 
-async function test() {
-  const inputArray = ['a', 'b', 'c', 'd'];
-  const successItems = [];
-  const failedItems = [];
-
-  for await (item of inputArray ){
-    try {
-      results = checkItem(item);
-      successItems.push(item);
-    } catch (error) {
-      failedItems.push(item);
-    }
-  }
-
-  console.log(successItems, failedItems);
-}
-
-test()
+test(systemSrc, 'systemPing');
