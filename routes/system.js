@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { callSrcFileSkipVerify } = require('../utils/callSrcFile');
+const { callSrcFileSkipVerify } = require('../utils/srcFile');
 const systemSrc = require('../src/systemSrc');
 
 /**

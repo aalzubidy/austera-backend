@@ -1,4 +1,5 @@
 const { logger } = require('../utils/logger');
+const { srcFileErrorHandler } = require('../utils/srcFile');
 const packageJSONFile = require('../package.json');
 
 /**
@@ -16,9 +17,7 @@ const getSystemVersion = async function getSystemVersion() {
       return version;
     } else return false;
   } catch (error) {
-    const userMsg = 'Could not get system version';
-    logger.error({ userMsg, error });
-    throw { code: 500, message: userMsg };
+    srcFileErrorHandler(error, 'could not get system version');
   }
 };
 
