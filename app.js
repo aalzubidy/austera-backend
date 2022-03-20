@@ -11,7 +11,8 @@ const fs = require('fs');
 const cors = require('cors');
 const requestIp = require('request-ip');
 const cookieParser = require('cookie-parser');
-const { logger } = require('./logger/logger');
+const { logger } = require('./utils/logger');
+const { routesLogger } = require('./utils/routesLogger');
 
 // Require routes
 const main = require('./routes/main.js');
@@ -33,6 +34,7 @@ app.use(methodOverride('_method'));
 app.use(express.json());
 app.use(requestIp.mw());
 app.use(cookieParser());
+app.use(routesLogger);
 
 // Multer Configurations to upload file
 const storage = multer.diskStorage({

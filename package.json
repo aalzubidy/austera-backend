@@ -1,12 +1,15 @@
 {
   "name": "austera-backend",
-  "version": "1.3.0",
+  "version": "1.5.0",
   "description": "",
   "main": "app.js",
   "scripts": {
     "preinstall": "node installGitHooks.js",
     "test": "ACCESS_TOKEN_SECRET=test REFRESH_TOKEN_SECRET=test nyc --recursive --reporter=html --reporter=text --reporter-dir=coverage/unit mocha --recursive test/unit --silent",
-    "lint": "eslint . --ext .json --ext .js"
+    "lint": "eslint . --ext .json --ext .js",
+    "start:dev:lint": "nodemon ./app --exec \"npm run lint && node\"",
+    "start:dev": "nodemon app.js",
+    "start": "node app.js"
   },
   "author": "",
   "license": "ISC",
@@ -22,6 +25,7 @@
     "method-override": "^3.0.0",
     "multer": "^1.4.2",
     "path": "^0.12.7",
+    "pg": "^8.7.3",
     "request-ip": "^2.1.3",
     "winston": "^3.6.0"
   },
