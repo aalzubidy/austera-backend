@@ -441,7 +441,7 @@ const requestPasswordReset = async function requestPasswordReset(req) {
 
     await checkRequiredParameters({ username, email });
 
-    const { rows: [dbUser] } = await db.query('select username, email from users where username=$1 and email=$2', [username, email], 'check existing username and email for password reset');
+    const { rows: [dbUser] } = await db.query('select id, username, email from users where username=$1 and email=$2', [username, email], 'check existing username and email for password reset');
 
     if (dbUser && dbUser.username === username && dbUser.email === email) {
       // Create a pin
