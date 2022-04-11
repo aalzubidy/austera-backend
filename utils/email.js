@@ -35,7 +35,7 @@ const sendEmailText = async function sendEmailText(emailTo, subject, body) {
     });
 
     const info = await transporter.sendMail({
-      from: '"CS Interview Questions" <' + emailAccount.user + '>',
+      from: '"Austera" <' + emailAccount.user + '>',
       to: emailTo,
       subject,
       text: body

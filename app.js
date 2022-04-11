@@ -16,6 +16,8 @@ const { routesLogger } = require('./utils/routesLogger');
 
 // Require routes
 const systemRoutes = require('./routes/system');
+const authorizationRoutes = require('./routes/authorization');
+// const usersRoutes = require('./routes/users');
 
 // Application Setup
 const app = express();
@@ -61,6 +63,12 @@ const upload = multer({
 
 // System and stats routes
 app.use(systemRoutes);
+
+// Authentication routes
+app.use(authorizationRoutes);
+
+// Users routes
+// app.use(usersRoutes);
 
 // Index Route
 app.get('/', async function (req, res) {
