@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authorizationSrc = require('../src/authorizationSrc');
-const { callSrcFile, callSrcFileSkipVerify } = require('../utils/srcFile');
+const { callSrcFile, callSrcFileSkipVerify } = require('../utils/srcFileAuthorization');
 
 /**
  * @summary Register a new user
@@ -14,7 +14,7 @@ router.post('/users', async (req, res) => {
  * @summary Verify user's registration
  */
 router.get('/users/:userId/verifyRegistration/:verificationCode', async (req, res) => {
-  callSrcFileSkipVerify(authorizationSrc, 'verifyRegistration', [req], req, res);
+  callSrcFileSkipVerify(authorizationSrc, 'verifyRegistrationCode', [req], req, res);
 });
 
 /**
@@ -28,13 +28,13 @@ router.post('/login', async (req, res) => {
  * @summary Logout and delete the stored refresh token by an access token and a refresh tokens
  */
 router.delete('/logout', async (req, res) => {
-  callSrcFile('authorizationSrc', 'logout', [req], req, res, false);
+  callSrcFile(authorizationSrc, 'logout', [req], req, res, false);
 });
 
 /**
- * @summary Get a new access token using existing refresh token cookie by refresh token
+ * @summary Logout and delete the stored refresh token by cookie
  */
-router.post('/logoutByCookie', async (req, res) => {
+router.delete('/logoutByCookie', async (req, res) => {
   callSrcFileSkipVerify(authorizationSrc, 'logoutByCookie', [req], req, res);
 });
 
@@ -63,7 +63,7 @@ router.post('/checkUsernameAvailablity', async (req, res) => {
  * @summary Get user from token
  */
 router.get('/getTokenUser', async (req, res) => {
-  callSrcFile('gauthorizationSrc, etTokenUser', [], req, res, false);
+  callSrcFile(authorizationSrc, 'getTokenUser', [], req, res, false);
 });
 
 module.exports = router;
