@@ -28,7 +28,7 @@ router.post('/login', async (req, res) => {
  * @summary Logout and delete the stored refresh token by an access token and a refresh tokens
  */
 router.delete('/logout', async (req, res) => {
-  callSrcFile(authorizationSrc, 'logout', [req], req, res, false);
+  callSrcFile(authorizationSrc, 'logout', [req], req, res);
 });
 
 /**
@@ -63,7 +63,14 @@ router.post('/checkUsernameAvailablity', async (req, res) => {
  * @summary Get user from token
  */
 router.get('/getTokenUser', async (req, res) => {
-  callSrcFile(authorizationSrc, 'getTokenUser', [], req, res, false);
+  callSrcFile(authorizationSrc, 'getTokenUser', [], req, res);
+});
+
+/**
+ * @summary Request password reset by an email
+ */
+router.post('/requestPasswordReset', async (req, res) => {
+  callSrcFileSkipVerify(authorizationSrc, 'requestPasswordReset', [req], req, res);
 });
 
 module.exports = router;

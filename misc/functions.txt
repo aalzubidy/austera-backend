@@ -1,13 +1,17 @@
 authentication
-- add user
-- login user
-- logout user
-- renew token by url
-- renew token by cookie
-- verify token
-- get user
-- reset password
-- change password
+x- add user
+x- verify user's registration code
+x- login user
+x- logout user
+x- logout user by cookie
+x- get user from token
+x- check user's availability
+x- renew token by url
+x- renew token by cookie
+x- verify token
+x- request password reset
+- change password by request reset
+- change password by previous password
 - delete account
 
 notifications

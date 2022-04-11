@@ -48,21 +48,21 @@ const getUser = async function getUser(email, status = 'verified') {
 
 /**
  * @function updateUserVerificationCode
- * @summary Update user's pin
+ * @summary Update user's verification code
  * @param {string} email User's email
- * @param {string} pin User's pin
+ * @param {string} verificationCode User's verification code
  * @returns {object} updateUserResults
  * @throws {boolean} false
  */
-const updateUserVerificationCode = async function updateUserVerificationCode(email, pin) {
-  // Check if there is no email or pin
-  if (!email || !pin) throw { code: 400, message: 'Please provide required an email and pin' };
+const updateUserVerificationCode = async function updateUserVerificationCode(email, verificationCode) {
+  // Check if there is no email or verificationCode
+  if (!email || !verificationCode) throw { code: 400, message: 'Please provide required an email and verificationCode' };
 
-  // Update user's pin in the database
-  const { rows: [dbUser] } = await db.query('update users set verification_code=$1 where email=$2 returning email', [pin, email], 'update user pin');
+  // Update user's verificationCode in the database
+  const { rows: [dbUser] } = await db.query('update users set verification_code=$1 where email=$2 returning email', [verificationCode, email], 'update user verification_code');
 
   if (dbUser && dbUser.email) return dbUser;
-  else throw { code: 500, message: 'Could not generate a pin' };
+  else throw { code: 500, message: 'Could not generate a verification code' };
 };
 
 /**
@@ -101,7 +101,7 @@ const registerUser = async function registerUser(req) {
     // Hash the pin
     // const pinHashed = await bcrypt.hash(newPin, 12);
 
-    // Update pin in the database
+    // Update verification code in the database
     await updateUserVerificationCode(email, newPin);
 
     // Send email with the pin
@@ -426,6 +426,46 @@ const getTokenUser = async function getTokenUser(user) {
   }
 };
 
+/**
+ * @function requestPasswordReset
+ * @summary Check if username and email in the database and send a verification code
+ * @param {*} req http request contains access token and refresh token
+ * @returns {object} requestResults
+ * @throws {object} errorCodeAndMsg
+ */
+const requestPasswordReset = async function requestPasswordReset(req) {
+  try {
+    const { username, email } = req.body;
+
+    console.log(username, email);
+
+    await checkRequiredParameters({ username, email });
+
+    const { rows: [dbUser] } = await db.query('select username, email from users where username=$1 and email=$2', [username, email], 'check existing username and email for password reset');
+
+    if (dbUser && dbUser.username === username && dbUser.email === email) {
+      // Create a pin
+      const newPin = randomstring.generate(12);
+
+      // Update verification code in the database
+      await updateUserVerificationCode(email, newPin);
+
+      // Send email with the pin
+      const subject = 'Reset Password Request - Your Verification Code is Here';
+      const body = `To continue with your reset password request click on the link: http://localhost:3030/users/${dbUser.id}/verifyPasswordReset/${newPin}`;
+
+      return await sendEmailText(email, subject, body);
+    } else if (!dbUser) {
+      throw {
+        code: 404,
+        message: 'Could not find user information'
+      };
+    }
+  } catch (error) {
+    srcFileErrorHandler(error, 'Could not request password reset');
+  }
+};
+
 module.exports = {
   registerUser,
   verifyRegistrationCode,
@@ -436,5 +476,6 @@ module.exports = {
   renewTokenByCookie,
   verifyToken,
   checkUsernameAvailablity,
-  getTokenUser
+  getTokenUser,
+  requestPasswordReset
 };
