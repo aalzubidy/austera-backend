@@ -30,19 +30,53 @@ const addUserIP = async function addUserIP(id, ip) {
 };
 
 /**
- * @function getUser
+ * @function getUserById
  * @summary Get user from database
- * @param {string} email User's email
- * @returns {object} getUserResults
+ * @param {string} userId User's id
+ * @returns {object} getUserByIdResults
  * @throws {boolean} false
  */
-const getUser = async function getUser(email, status = 'verified') {
-  // Check if there is no email
-  if (!email) throw { code: 400, message: 'Please provide an email' };
+const getUserById = async function getUserById(userId, status = 'verified') {
+  // Check if there is no userId
+  if (!userId) throw { code: 400, message: 'Please provide a user id' };
 
-  const { rows: [dbUser] } = await db.query('select * from users where email=$1 and status=$2', [email, status], 'Get user from db');
+  const { rows: [dbUser] } = await db.query('select * from users where id=$1 and status=$2', [userId, status], 'Get user from db by id');
+
+  if (dbUser && dbUser.id) return dbUser;
+  else return false;
+};
+
+/**
+ * @function getUserByEmail
+ * @summary Get user from database
+ * @param {string} email User's email
+ * @returns {object} getUserByEmailResults
+ * @throws {boolean} false
+ */
+const getUserByEmail = async function getUserByEmail(email, status = 'verified') {
+  // Check if there is no email
+  if (!email) throw { code: 400, message: 'Please provide a user email' };
+
+  const { rows: [dbUser] } = await db.query('select * from users where email=$1 and status=$2', [email, status], 'Get user from db by email');
 
   if (dbUser && dbUser.email) return dbUser;
+  else return false;
+};
+
+/**
+ * @function getUserByUsername
+ * @summary Get user from database by username
+ * @param {string} username User's username
+ * @returns {object} getUserByUsernameResults
+ * @throws {boolean} false
+ */
+const getUserByUsername = async function getUserByUsername(username, status = 'verified') {
+  // Check if there is no username
+  if (!username) throw { code: 400, message: 'Please provide a username' };
+
+  const { rows: [dbUser] } = await db.query('select * from users where username=$1 and status=$2', [username, status], 'Get user from db by username');
+
+  if (dbUser && dbUser.username) return dbUser;
   else return false;
 };
 
@@ -215,7 +249,7 @@ const login = async function login(req) {
     await checkRequiredParameters({ email, password, ip });
 
     // Get user information from database and check if it matches
-    const userDb = await getUser(email);
+    const userDb = await getUserByEmail(email);
 
     if (userDb && userDb.email == email && password && password !== 'null' && userDb.password !== 'null' && await bcrypt.compare(password, userDb.password)) {
       // Generate access token and refresh token
@@ -523,6 +557,36 @@ const requestPasswordReset = async function requestPasswordReset(req) {
   }
 };
 
+/**
+ * @function deleteUser
+ * @summary Delete user from system
+ * @param {*} req http request contains userId, and password
+ * @returns {object} deleteAccountStatus
+ * @throws {object} errorCodeAndMsg
+ */
+const deleteUser = async function deleteUser(req) {
+  try {
+    const { userId, password } = req.body;
+
+    await checkRequiredParameters({ userId, password });
+
+    // Get user information from database and check if it matches
+    const userDb = await getUserById(userId);
+
+    if (userDb && userDb.id == userId && password && password !== 'null' && userDb.password !== 'null' && await bcrypt.compare(password, userDb.password)) {
+      await db.query('delete from users where id=$1', [userId], 'delete user');
+
+      // Check the user again
+      const userDbDoubleCheck = await getUserById(userId);
+
+      if (!userDbDoubleCheck) return { message: 'Deleted user successfully' };
+      else throw { code: 500, message: 'Could not delete user from db' };
+    } else throw { code: 401, message: 'Please check email and password' };
+  } catch (error) {
+    srcFileErrorHandler(error, 'Could not delete user');
+  }
+};
+
 module.exports = {
   registerUser,
   verifyRegistrationCode,
@@ -534,5 +598,6 @@ module.exports = {
   verifyToken,
   checkUsernameAvailablity,
   getTokenUser,
-  requestPasswordReset
+  requestPasswordReset,
+  deleteUser
 };

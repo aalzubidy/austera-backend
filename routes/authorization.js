@@ -73,4 +73,11 @@ router.post('/requestPasswordReset', async (req, res) => {
   callSrcFileSkipVerify(authorizationSrc, 'requestPasswordReset', [req], req, res);
 });
 
+/**
+ * @summary Delete a new user
+ */
+router.delete('/users', async (req, res) => {
+  callSrcFileSkipVerify(authorizationSrc, 'deleteUser', [req], req, res);
+});
+
 module.exports = router;

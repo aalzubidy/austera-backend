@@ -12,7 +12,7 @@ x- verify token
 x- request password reset
 - change password by request reset
 - change password by previous password
-- delete account
+x- delete account
 
 notifications
 - create a new notifications
