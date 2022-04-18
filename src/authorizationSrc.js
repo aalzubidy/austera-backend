@@ -47,22 +47,66 @@ const getUser = async function getUser(email, status = 'verified') {
 };
 
 /**
- * @function updateUserVerificationCode
- * @summary Update user's verification code
- * @param {string} email User's email
+ * @function addUserVerificationCode
+ * @summary Add a user's verification code
+ * @param {string} userId User's id
  * @param {string} verificationCode User's verification code
- * @returns {object} updateUserResults
+ * @param {string} codeType Type of code e.g. new user, password reset, etc
+ * @returns {object} addCodeResults
  * @throws {boolean} false
  */
-const updateUserVerificationCode = async function updateUserVerificationCode(email, verificationCode) {
-  // Check if there is no email or verificationCode
-  if (!email || !verificationCode) throw { code: 400, message: 'Please provide required an email and verificationCode' };
+const addUserVerificationCode = async function addUserVerificationCode(userId, verificationCode, codeType) {
+  try {
+    // Get today's date
+    const createDate = moment().format('MM/DD/YYYY');
 
-  // Update user's verificationCode in the database
-  const { rows: [dbUser] } = await db.query('update users set verification_code=$1 where email=$2 returning email', [verificationCode, email], 'update user verification_code');
+    // Add user's verificationCode in the database
+    const { rows: [dbUser] } = await db.query('insert into user_verifications(user_id, verification_code, code_type, create_date) values($1, $2, $3, $4) returning user_id', [userId, verificationCode, codeType, createDate], 'add user verification_code');
 
-  if (dbUser && dbUser.email) return dbUser;
-  else throw { code: 500, message: 'Could not generate a verification code' };
+    if (dbUser && dbUser.user_id) return dbUser;
+    else throw { code: 500, message: 'Could not add a verification code' };
+  } catch (error) {
+    throw { code: 500, message: 'Could not add a verification code into db' };
+  }
+};
+
+/**
+ * @function verifyUserVerificationCode
+ * @summary Get a user's verification code
+ * @param {string} userId User's id
+ * @param {string} verificationCode User's verification code
+ * @param {string} codeType Type of code e.g. new user, password reset, etc
+ * @returns {object} verificationCodeResults
+ * @throws {boolean} false
+ */
+const verifyUserVerificationCode = async function verifyUserVerificationCode(userId, verificationCode, codeType) {
+  try {
+    // Add user's verificationCode in the database
+    const { rows: [dbUser] } = await db.query('select user_id from user_verifications where user_id=$1 and verification_code=$2 and code_type=$3', [userId, verificationCode, codeType], 'get user verification_code');
+
+    if (dbUser && dbUser.user_id) return dbUser;
+    else throw { code: 500, message: 'Could not get a verification code' };
+  } catch (error) {
+    throw { code: 500, message: 'Could not get a verification code from db' };
+  }
+};
+
+/**
+ * @function deleteUserVerificationCode
+ * @summary Delete a user's verification code
+ * @param {string} userId User's id
+ * @param {string} verificationCode User's verification code
+ * @param {string} codeType Type of code e.g. new user, password reset, etc
+ * @returns {object} deleteCodeResults
+ * @throws {boolean} false
+ */
+const deleteUserVerificationCode = async function deleteUserVerificationCode(userId, verificationCode, codeType) {
+  try {
+    // Add user's verificationCode in the database
+    return await db.query('delete from user_verifications where user_id=$1 and verification_code=$2 and code_type=$3', [userId, verificationCode, codeType], 'delete user verification_code');
+  } catch (error) {
+    throw { code: 500, message: 'Could not delete a verification code from db' };
+  }
 };
 
 /**
@@ -73,6 +117,8 @@ const updateUserVerificationCode = async function updateUserVerificationCode(ema
  * @throws {object} errorCodeAndMsg
  */
 const registerUser = async function registerUser(req) {
+  let createdUserId = false;
+
   try {
     const {
       username,
@@ -95,14 +141,16 @@ const registerUser = async function registerUser(req) {
     // If could not register a user then throw an error
     if (!dbUser || !dbUser.id) throw { code: 500, message: 'Could not register user' };
 
+    createdUserId = dbUser.id;
+
     // Create a pin
     const newPin = randomstring.generate(12);
 
     // Hash the pin
     // const pinHashed = await bcrypt.hash(newPin, 12);
 
-    // Update verification code in the database
-    await updateUserVerificationCode(email, newPin);
+    // Add a verification code in the database for a new user registration
+    await addUserVerificationCode(dbUser.id, newPin, 'new user');
 
     // Send email with the pin
     const subject = 'Your Verification Code is Here';
@@ -110,6 +158,7 @@ const registerUser = async function registerUser(req) {
 
     return await sendEmailText(email, subject, body);
   } catch (error) {
+    if (createdUserId) db.query('delete from users where id=$1', [createdUserId], 'delete user due to error in verification');
     srcFileErrorHandler(error, 'Could not register user and generate user pin');
   }
 };
@@ -130,11 +179,19 @@ const verifyRegistrationCode = async function verifyRegistrationCode(req) {
 
     await checkRequiredParameters({ userId, verificationCode });
 
-    // Update user in database
-    const { rows: [dbUser] } = await db.query("update users set verification_code='', status='verified' where id=$1 and verification_code=$2 and status='created' returning id", [userId, verificationCode], 'update user registration verification code');
+    // Get user verification code from database
+    const dbUserCode = await verifyUserVerificationCode(userId, verificationCode, 'new user');
 
     // If could not update a user then throw an error
-    if (!dbUser || !dbUser.id) throw { code: 500, message: 'Could not verify user registration' };
+    if (!dbUserCode || !dbUserCode.user_id || dbUserCode.user_id != userId) throw { code: 500, message: 'Could not verify user registration' };
+
+    // Update user in database
+    const { rows: [dbUser] } = await db.query("update users set status='verified' where id=$1 and status='created' returning id", [userId], 'update user status after verification');
+
+    if (!dbUser || !dbUser.id || dbUser.id != userId) throw { code: 500, message: 'Could not update user status after verification' };
+
+    // Delete user verification code from database
+    deleteUserVerificationCode(dbUserCode.user_id, verificationCode, 'new user');
 
     return { results: 'User verified successfully!' };
   } catch (error) {
@@ -448,7 +505,7 @@ const requestPasswordReset = async function requestPasswordReset(req) {
       const newPin = randomstring.generate(12);
 
       // Update verification code in the database
-      await updateUserVerificationCode(email, newPin);
+      await addUserVerificationCode(dbUser.id, newPin, 'password reset');
 
       // Send email with the pin
       const subject = 'Reset Password Request - Your Verification Code is Here';
