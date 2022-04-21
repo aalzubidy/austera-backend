@@ -17,7 +17,8 @@ const { routesLogger } = require('./utils/routesLogger');
 // Require routes
 const systemRoutes = require('./routes/system');
 const authorizationRoutes = require('./routes/authorization');
-// const usersRoutes = require('./routes/users');
+const userAccountRoutes = require('./routes/userAccount');
+const userRoutes = require('./routes/user');
 
 // Application Setup
 const app = express();
@@ -67,8 +68,11 @@ app.use(systemRoutes);
 // Authentication routes
 app.use(authorizationRoutes);
 
-// Users routes
-// app.use(usersRoutes);
+// User Account routes
+app.use(userAccountRoutes);
+
+// User Account routes
+app.use(userRoutes);
 
 // Index Route
 app.get('/', async function (req, res) {

@@ -53,13 +53,6 @@ router.post('/renewTokenByCookie', async (req, res) => {
 });
 
 /**
- * @summary Check if username is in database
- */
-router.post('/checkUsernameAvailablity', async (req, res) => {
-  callSrcFileSkipVerify(authorizationSrc, 'checkUsernameAvailablity', [req], req, res);
-});
-
-/**
  * @summary Get user from token
  */
 router.get('/getTokenUser', async (req, res) => {
@@ -71,13 +64,6 @@ router.get('/getTokenUser', async (req, res) => {
  */
 router.post('/requestPasswordReset', async (req, res) => {
   callSrcFileSkipVerify(authorizationSrc, 'requestPasswordReset', [req], req, res);
-});
-
-/**
- * @summary Delete a new user
- */
-router.delete('/users', async (req, res) => {
-  callSrcFileSkipVerify(authorizationSrc, 'deleteUser', [req], req, res);
 });
 
 module.exports = router;

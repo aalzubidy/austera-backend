@@ -6,6 +6,8 @@ const { logger } = require('../utils/logger');
 const { checkRequiredParameters, srcFileErrorHandler } = require('../utils/srcFile');
 const { sendEmailText } = require('../utils/email');
 const db = require('../utils/db');
+const { addUserVerificationCode, verifyUserVerificationCode, deleteUserVerificationCode } = require('./userVerificationSrc');
+const { getUserByEmail } = require('./userSrc');
 
 const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
 const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
@@ -27,120 +29,6 @@ const addUserIP = async function addUserIP(id, ip) {
 
   if (queryResults && queryResults.rows[0]) return queryResults.rows[0];
   else return false;
-};
-
-/**
- * @function getUserById
- * @summary Get user from database
- * @param {string} userId User's id
- * @returns {object} getUserByIdResults
- * @throws {boolean} false
- */
-const getUserById = async function getUserById(userId, status = 'verified') {
-  // Check if there is no userId
-  if (!userId) throw { code: 400, message: 'Please provide a user id' };
-
-  const { rows: [dbUser] } = await db.query('select * from users where id=$1 and status=$2', [userId, status], 'Get user from db by id');
-
-  if (dbUser && dbUser.id) return dbUser;
-  else return false;
-};
-
-/**
- * @function getUserByEmail
- * @summary Get user from database
- * @param {string} email User's email
- * @returns {object} getUserByEmailResults
- * @throws {boolean} false
- */
-const getUserByEmail = async function getUserByEmail(email, status = 'verified') {
-  // Check if there is no email
-  if (!email) throw { code: 400, message: 'Please provide a user email' };
-
-  const { rows: [dbUser] } = await db.query('select * from users where email=$1 and status=$2', [email, status], 'Get user from db by email');
-
-  if (dbUser && dbUser.email) return dbUser;
-  else return false;
-};
-
-/**
- * @function getUserByUsername
- * @summary Get user from database by username
- * @param {string} username User's username
- * @returns {object} getUserByUsernameResults
- * @throws {boolean} false
- */
-const getUserByUsername = async function getUserByUsername(username, status = 'verified') {
-  // Check if there is no username
-  if (!username) throw { code: 400, message: 'Please provide a username' };
-
-  const { rows: [dbUser] } = await db.query('select * from users where username=$1 and status=$2', [username, status], 'Get user from db by username');
-
-  if (dbUser && dbUser.username) return dbUser;
-  else return false;
-};
-
-/**
- * @function addUserVerificationCode
- * @summary Add a user's verification code
- * @param {string} userId User's id
- * @param {string} verificationCode User's verification code
- * @param {string} codeType Type of code e.g. new user, password reset, etc
- * @returns {object} addCodeResults
- * @throws {boolean} false
- */
-const addUserVerificationCode = async function addUserVerificationCode(userId, verificationCode, codeType) {
-  try {
-    // Get today's date
-    const createDate = moment().format('MM/DD/YYYY');
-
-    // Add user's verificationCode in the database
-    const { rows: [dbUser] } = await db.query('insert into user_verifications(user_id, verification_code, code_type, create_date) values($1, $2, $3, $4) returning user_id', [userId, verificationCode, codeType, createDate], 'add user verification_code');
-
-    if (dbUser && dbUser.user_id) return dbUser;
-    else throw { code: 500, message: 'Could not add a verification code' };
-  } catch (error) {
-    throw { code: 500, message: 'Could not add a verification code into db' };
-  }
-};
-
-/**
- * @function verifyUserVerificationCode
- * @summary Get a user's verification code
- * @param {string} userId User's id
- * @param {string} verificationCode User's verification code
- * @param {string} codeType Type of code e.g. new user, password reset, etc
- * @returns {object} verificationCodeResults
- * @throws {boolean} false
- */
-const verifyUserVerificationCode = async function verifyUserVerificationCode(userId, verificationCode, codeType) {
-  try {
-    // Add user's verificationCode in the database
-    const { rows: [dbUser] } = await db.query('select user_id from user_verifications where user_id=$1 and verification_code=$2 and code_type=$3', [userId, verificationCode, codeType], 'get user verification_code');
-
-    if (dbUser && dbUser.user_id) return dbUser;
-    else throw { code: 500, message: 'Could not get a verification code' };
-  } catch (error) {
-    throw { code: 500, message: 'Could not get a verification code from db' };
-  }
-};
-
-/**
- * @function deleteUserVerificationCode
- * @summary Delete a user's verification code
- * @param {string} userId User's id
- * @param {string} verificationCode User's verification code
- * @param {string} codeType Type of code e.g. new user, password reset, etc
- * @returns {object} deleteCodeResults
- * @throws {boolean} false
- */
-const deleteUserVerificationCode = async function deleteUserVerificationCode(userId, verificationCode, codeType) {
-  try {
-    // Add user's verificationCode in the database
-    return await db.query('delete from user_verifications where user_id=$1 and verification_code=$2 and code_type=$3', [userId, verificationCode, codeType], 'delete user verification_code');
-  } catch (error) {
-    throw { code: 500, message: 'Could not delete a verification code from db' };
-  }
 };
 
 /**
@@ -465,31 +353,6 @@ const verifyToken = async function verifyToken(req) {
 };
 
 /**
- * @function checkUsernameAvailablity
- * @summary Check if username already in the database
- * @param {*} req http request contains access token and refresh token
- * @returns {object} checkUsernameResults
- * @throws {object} errorCodeAndMsg
- */
-const checkUsernameAvailablity = async function checkUsernameAvailablity(req) {
-  try {
-    const { username } = req.body;
-
-    await checkRequiredParameters({ username });
-
-    const { rows: [dbUser] } = await db.query('select username from users where username=$1', [username], 'check existing username');
-
-    if (dbUser && dbUser.username === username) {
-      return ({ 'username': dbUser.username });
-    } else if (!dbUser) {
-      return ({ 'username': false });
-    }
-  } catch (error) {
-    srcFileErrorHandler(error, 'Could not check for existing username');
-  }
-};
-
-/**
  * @function getTokenUser
  * @summary Get user information from token
  * @param {object} user User information
@@ -557,36 +420,6 @@ const requestPasswordReset = async function requestPasswordReset(req) {
   }
 };
 
-/**
- * @function deleteUser
- * @summary Delete user from system
- * @param {*} req http request contains userId, and password
- * @returns {object} deleteAccountStatus
- * @throws {object} errorCodeAndMsg
- */
-const deleteUser = async function deleteUser(req) {
-  try {
-    const { userId, password } = req.body;
-
-    await checkRequiredParameters({ userId, password });
-
-    // Get user information from database and check if it matches
-    const userDb = await getUserById(userId);
-
-    if (userDb && userDb.id == userId && password && password !== 'null' && userDb.password !== 'null' && await bcrypt.compare(password, userDb.password)) {
-      await db.query('delete from users where id=$1', [userId], 'delete user');
-
-      // Check the user again
-      const userDbDoubleCheck = await getUserById(userId);
-
-      if (!userDbDoubleCheck) return { message: 'Deleted user successfully' };
-      else throw { code: 500, message: 'Could not delete user from db' };
-    } else throw { code: 401, message: 'Please check email and password' };
-  } catch (error) {
-    srcFileErrorHandler(error, 'Could not delete user');
-  }
-};
-
 module.exports = {
   registerUser,
   verifyRegistrationCode,
@@ -596,8 +429,6 @@ module.exports = {
   renewToken,
   renewTokenByCookie,
   verifyToken,
-  checkUsernameAvailablity,
   getTokenUser,
-  requestPasswordReset,
-  deleteUser
+  requestPasswordReset
 };
