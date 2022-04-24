@@ -1,3 +1,6 @@
+const Filter = require('bad-words');
+const filter = new Filter();
+
 /**
  * @function titleCase
  * @summary Convert a string to title case format
@@ -14,6 +17,47 @@ const titleCase = function titleCase(inputString) {
   }
 };
 
+/**
+ * @function cleanBulk
+ * @summary Clean profane language from items
+ * @params {object} itemsToClean - Items to clean
+ * @returns {object} cleanItems
+ * @throws {error} errorDetails
+ */
+const cleanBulk = function cleanBulk(itemsToClean) {
+  try {
+    const cleanItems = {};
+
+    Object.keys(itemsToClean).forEach((k) => {
+      cleanItems[k] = filter.clean(itemsToClean[k]);
+    });
+
+    return cleanItems;
+  } catch (error) {
+    throw { code: 500, message: 'Could not clean bulk items' };
+  }
+};
+
+/**
+ * @function isProfaneBulk
+ * @summary Check profane language for items return true if any of them is bad word
+ * @params {array} itemsToCheck - Items to check
+ * @returns {boolean} checkItemsResults
+ * @throws {error} errorDetails
+ */
+const isProfaneBulk = function isProfaneBulk(itemsToCheck) {
+  try {
+    return itemsToCheck.some((item) => {
+      if (item) return filter.isProfane(item);
+      else return false;
+    });
+  } catch (error) {
+    throw { code: 500, message: 'Could not check profane bulk items' };
+  }
+};
+
 module.exports = {
-  titleCase
+  titleCase,
+  cleanBulk,
+  isProfaneBulk
 };

@@ -8,6 +8,7 @@ const { sendEmailText } = require('../utils/email');
 const db = require('../utils/db');
 const { addUserVerificationCode, verifyUserVerificationCode, deleteUserVerificationCode } = require('./userVerificationSrc');
 const { getUserById, getUserByEmail, getUserByUsername } = require('./userSrc');
+const { isProfaneBulk } = require('../utils/stringTools');
 
 /**
  * @function deleteUser
@@ -38,8 +39,74 @@ const deleteUser = async function deleteUser(req, user) {
   }
 };
 
-const updateUserInformation = async function updateUserInformation() {
-  return 'not yet implemented';
+/**
+ * @function updateUserInformation
+ * @summary Update user's account information
+ * @param {string} username New user's username
+ * @param {string} email New user's email
+ * @param {string} firstName New user's firstName
+ * @param {string} lastName New user's lastName
+ * @param {string} mobile New user's mobile
+ * @param {object} user User object from token
+ * @returns {object} updateAccountStatus
+ * @throws {object} errorCodeAndMsg
+ */
+const updateUserInformation = async function updateUserInformation(username, email, firstName, lastName, mobile, user) {
+  try {
+    // Check isProfane information
+    if (isProfaneBulk([username, email, firstName, lastName, mobile])) throw { code: 400, message: 'Could not check words in update user information' };
+
+    let count = 1;
+    let updateString = 'update users set(';
+    const updateArray = [];
+
+    if (username) updateString = `${updateString}username,`;
+    if (email) updateString = `${updateString}email,`;
+    if (firstName) updateString = `${updateString}firstname,`;
+    if (lastName) updateString = `${updateString}lastname,`;
+    if (mobile) updateString = `${updateString}mobile,`;
+
+    updateString = updateString.substring(0, updateString.length - 1);
+
+    updateString = `${updateString})=(`;
+
+    if (username) {
+      updateString = `${updateString}$${count},`;
+      count += 1;
+      updateArray.push(username.trim());
+    }
+    if (email) {
+      updateString = `${updateString}$${count},`;
+      count += 1;
+      updateArray.push(email.trim());
+    }
+    if (firstName) {
+      updateString = `${updateString}$${count},`;
+      count += 1;
+      updateArray.push(firstName.trim());
+    }
+    if (lastName) {
+      updateString = `${updateString}$${count},`;
+      count += 1;
+      updateArray.push(lastName.trim());
+    }
+    if (mobile) {
+      updateString = `${updateString}$${count},`;
+      count += 1;
+      updateArray.push(mobile.trim());
+    }
+
+    updateString = updateString.substring(0, updateString.length - 1);
+
+    updateString = `${updateString}) where id=$${count} returning id`;
+    updateArray.push(user.id);
+
+    const [dbUser] = await db.query(updateString, updateArray, 'update user information');
+
+    return { 'message': 'Updated user successfully', id: dbUser.id };
+  } catch (error) {
+    srcFileErrorHandler(error, 'Could not update user');
+  }
 };
 
 const updateUserAvatar = async function updateUserAvatar() {
@@ -55,5 +122,6 @@ const updateExistingPassword = async function updateExistingPassword() {
 };
 
 module.exports = {
-  deleteUser
+  deleteUser,
+  updateUserInformation
 };
