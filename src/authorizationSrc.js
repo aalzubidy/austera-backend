@@ -25,10 +25,7 @@ const addUserIP = async function addUserIP(id, ip) {
   if (!id || !ip) throw { code: 400, message: 'Please provide required information' };
 
   // Add ip to user in the database
-  const [dbUser] = await db.query('update users set ip = array_append(ip, $1) where id=$2 returning id', [ip, id], 'Add user ip');
-
-  if (dbUser) return dbUser;
-  else return false;
+  return db.query('update users set ip = ip || $1 where id=$2 and not (ip @> ARRAY[$1]::inet[]) returning id', [ip, id], 'Add user ip');
 };
 
 /**
@@ -58,12 +55,14 @@ const registerUser = async function registerUser(req) {
     const createDate = moment().format('MM/DD/YYYY');
 
     // Add user to database
-    const [dbUser] = await db.query('insert into users(username, email, ip, password, create_date) VALUES($1, $2, $3, $4, $5) returning id', [username, email, '{' + ip + '}', passwordHashed, createDate], 'create new user');
+    const [dbUser] = await db.query('insert into users(username, email, password, create_date) VALUES($1, $2, $3, $4) returning id', [username, email, passwordHashed, createDate], 'create new user');
 
     // If could not register a user then throw an error
     if (!dbUser || !dbUser.id) throw { code: 500, message: 'Could not register user' };
 
     createdUserId = dbUser.id;
+
+    await addUserIP(dbUser.id, ip);
 
     // Create a pin
     const newPin = randomstring.generate(12);
