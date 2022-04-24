@@ -18,6 +18,10 @@ const fileFormat = format.combine(
     const { timestamp, level, message } = debug;
     return `${timestamp.slice(0, 19).replace('T', ' ')} ${level}: ${JSON.stringify(message)}`;
   }),
+  format.printf((error) => {
+    const { timestamp, level, message } = error;
+    return `${timestamp.slice(0, 19).replace('T', ' ')} ${level}: ${JSON.stringify(message)}`;
+  }),
 );
 
 // Create a format with color for console transport
@@ -30,6 +34,10 @@ const consoleFormat = format.combine(
   }),
   format.printf((debug) => {
     const { timestamp, level, message } = debug;
+    return `${timestamp.slice(0, 19).replace('T', ' ')} [${level}]: ${JSON.stringify(message)}`;
+  }),
+  format.printf((error) => {
+    const { timestamp, level, message } = error;
     return `${timestamp.slice(0, 19).replace('T', ' ')} [${level}]: ${JSON.stringify(message)}`;
   }),
 );

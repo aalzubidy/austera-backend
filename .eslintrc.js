@@ -1,7 +1,6 @@
 module.exports = {
   'env': {
     'browser': true,
-    'es6': true,
     'node': true
   },
   'extends': 'airbnb-base',
@@ -9,7 +8,8 @@ module.exports = {
     'json'
   ],
   'parserOptions': {
-    'sourceType': 'module'
+    'sourceType': 'module',
+    'ecmaVersion': 2022
   },
   'rules': {
     'arrow-body-style': 'warn',

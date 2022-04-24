@@ -16,7 +16,7 @@ const addUserVerificationCode = async function addUserVerificationCode(userId, v
     const createDate = moment().format('MM/DD/YYYY');
 
     // Add user's verificationCode in the database
-    const { rows: [dbUser] } = await db.query('insert into user_verifications(user_id, verification_code, code_type, create_date) values($1, $2, $3, $4) returning user_id', [userId, verificationCode, codeType, createDate], 'add user verification_code');
+    const [dbUser] = await db.query('insert into user_verifications(user_id, verification_code, code_type, create_date) values($1, $2, $3, $4) returning user_id', [userId, verificationCode, codeType, createDate], 'add user verification_code');
 
     if (dbUser && dbUser.user_id) return dbUser;
     else throw { code: 500, message: 'Could not add a verification code' };
@@ -37,7 +37,7 @@ const addUserVerificationCode = async function addUserVerificationCode(userId, v
 const verifyUserVerificationCode = async function verifyUserVerificationCode(userId, verificationCode, codeType) {
   try {
     // Add user's verificationCode in the database
-    const { rows: [dbUser] } = await db.query('select user_id from user_verifications where user_id=$1 and verification_code=$2 and code_type=$3', [userId, verificationCode, codeType], 'get user verification_code');
+    const [dbUser] = await db.query('select user_id from user_verifications where user_id=$1 and verification_code=$2 and code_type=$3', [userId, verificationCode, codeType], 'get user verification_code');
 
     if (dbUser && dbUser.user_id) return dbUser;
     else throw { code: 500, message: 'Could not get a verification code' };

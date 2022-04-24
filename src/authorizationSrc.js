@@ -25,9 +25,9 @@ const addUserIP = async function addUserIP(id, ip) {
   if (!id || !ip) throw { code: 400, message: 'Please provide required information' };
 
   // Add ip to user in the database
-  const queryResults = await db.query('update users set ip = array_append(ip, $1) where id=$2 returning id', [ip, id], 'Add user ip');
+  const [dbUser] = await db.query('update users set ip = array_append(ip, $1) where id=$2 returning id', [ip, id], 'Add user ip');
 
-  if (queryResults && queryResults.rows[0]) return queryResults.rows[0];
+  if (dbUser) return dbUser;
   else return false;
 };
 
@@ -58,7 +58,7 @@ const registerUser = async function registerUser(req) {
     const createDate = moment().format('MM/DD/YYYY');
 
     // Add user to database
-    const { rows: [dbUser] } = await db.query('insert into users(username, email, ip, password, create_date) VALUES($1, $2, $3, $4, $5) returning id', [username, email, '{' + ip + '}', passwordHashed, createDate], 'create new user');
+    const [dbUser] = await db.query('insert into users(username, email, ip, password, create_date) VALUES($1, $2, $3, $4, $5) returning id', [username, email, '{' + ip + '}', passwordHashed, createDate], 'create new user');
 
     // If could not register a user then throw an error
     if (!dbUser || !dbUser.id) throw { code: 500, message: 'Could not register user' };
@@ -108,9 +108,9 @@ const verifyRegistrationCode = async function verifyRegistrationCode(req) {
     if (!dbUserCode || !dbUserCode.user_id || dbUserCode.user_id != userId) throw { code: 500, message: 'Could not verify user registration' };
 
     // Update user in database
-    const { rows: [dbUser] } = await db.query("update users set status='verified' where id=$1 and status='created' returning id", [userId], 'update user status after verification');
+    const [dbUser] = await db.query("update users set status='verified' where id=$1 and status='created' returning id", [userId], 'update user status after verification');
 
-    if (!dbUser || !dbUser.id || dbUser.id != userId) throw { code: 500, message: 'Could not update user status after verification' };
+    if (dbUser?.id != userId) throw { code: 500, message: 'Could not update user status after verification' };
 
     // Delete user verification code from database
     deleteUserVerificationCode(dbUserCode.user_id, verificationCode, 'new user');
@@ -191,7 +191,7 @@ const logout = async function logout(req) {
     if (tokenVerify.id != refreshTokenVerify.id) throw { code: 401, message: 'Please provide valid token and refresh token' };
 
     // Delete refresh token from database
-    const dbResults = await db.query("update users set refresh_token='' where refresh_token=$1 and id=$2", [refreshToken, refreshTokenVerify.id], 'logout user');
+    const [dbResults] = await db.query("update users set refresh_token='' where refresh_token=$1 and id=$2 returning id", [refreshToken, refreshTokenVerify.id], 'logout user');
 
     if (dbResults) {
       return ({ 'results': 'Logged out successful' });
@@ -221,7 +221,7 @@ const logoutByCookie = async function logoutByCookie(req) {
     const refreshTokenVerify = await jwt.verify(refreshToken, refreshTokenSecret);
 
     // Delete refresh token from database
-    const dbResults = await db.query("update users set refresh_token='' where refresh_token=$1 and id=$2", [refreshToken, refreshTokenVerify.id], 'logout user by cookie');
+    const [dbResults] = await db.query("update users set refresh_token='' where refresh_token=$1 and id=$2 returning id", [refreshToken, refreshTokenVerify.id], 'logout user by cookie');
 
     if (dbResults) {
       return ({ 'results': 'Logged out successful' });
@@ -255,8 +255,8 @@ const renewToken = async function renewToken(req) {
     // Check the email on both of the tokens
     if (tokenVerify.id === refreshTokenVerify.id && tokenVerify.username === refreshTokenVerify.username) {
       // Check if this refresh token still active in the database
-      const queryResults = await db.query('select id, username, refresh_token from users where refresh_token=$1 and id=$2', [refreshToken, tokenVerify.id], 'get refresh token');
-      if (queryResults && queryResults.rows[0] && queryResults.rows[0].id === tokenVerify.id && queryResults.rows[0].username === tokenVerify.username) {
+      const [queryResults] = await db.query('select id, username, refresh_token from users where refresh_token=$1 and id=$2', [refreshToken, tokenVerify.id], 'get refresh token');
+      if (queryResults?.id === tokenVerify.id && queryResults?.username === tokenVerify.username) {
         // Generate a new access token
         const userSign = { id: tokenVerify.id, username: tokenVerify.username, firstName: tokenVerify.firstName, lastName: tokenVerify.lastName, avatarUrl: tokenVerify.avatarUrl };
         const newAccessToken = await jwt.sign(userSign, accessTokenSecret, { expiresIn: '30m' });
@@ -299,9 +299,9 @@ const renewTokenByCookie = async function renewTokenByCookie(req) {
     const refreshTokenVerify = await jwt.verify(refreshToken, refreshTokenSecret);
 
     // Check if this refresh token still active in the database
-    const queryResults = await db.query('select id, username, refresh_token from users where refresh_token=$1 and id=$2', [refreshToken, refreshTokenVerify.id]);
+    const [queryResults] = await db.query('select id, username, refresh_token from users where refresh_token=$1 and id=$2', [refreshToken, refreshTokenVerify.id]);
 
-    if (queryResults && queryResults.rows[0] && queryResults.rows[0]['refresh_token'] === refreshToken && queryResults.rows[0]['id'] === refreshTokenVerify.id && queryResults.rows[0]['username'] === refreshTokenVerify.username) {
+    if (queryResults?.refresh_token === refreshToken && queryResults?.id === refreshTokenVerify.id && queryResults?.username === refreshTokenVerify.username) {
       const userSign = { id: refreshTokenVerify.id, username: refreshTokenVerify.username, firstName: refreshTokenVerify.firstName, lastName: refreshTokenVerify.lastName, avatarUrl: refreshTokenVerify.avatarUrl };
 
       // Generate a new access token
@@ -395,9 +395,9 @@ const requestPasswordReset = async function requestPasswordReset(req) {
 
     await checkRequiredParameters({ username, email });
 
-    const { rows: [dbUser] } = await db.query('select id, username, email from users where username=$1 and email=$2', [username, email], 'check existing username and email for password reset');
+    const [dbUser] = await db.query('select id, username, email from users where username=$1 and email=$2', [username, email], 'check existing username and email for password reset');
 
-    if (dbUser && dbUser.username === username && dbUser.email === email) {
+    if (dbUser?.username === username && dbUser?.email === email) {
       // Create a pin
       const newPin = randomstring.generate(12);
 

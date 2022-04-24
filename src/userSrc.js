@@ -19,10 +19,9 @@ const getUserById = async function getUserById(userId, status = 'verified') {
   // Check if there is no userId
   if (!userId) throw { code: 400, message: 'Please provide a user id' };
 
-  const { rows: [dbUser] } = await db.query('select * from users where id=$1 and status=$2', [userId, status], 'Get user from db by id');
+  const [dbUser] = await db.query('select * from users where id=$1 and status=$2', [userId, status], 'Get user from db by id');
 
-  if (dbUser && dbUser.id) return dbUser;
-  else return false;
+  return (dbUser ? dbUser : false);
 };
 
 /**
@@ -36,10 +35,9 @@ const getUserByEmail = async function getUserByEmail(email, status = 'verified')
   // Check if there is no email
   if (!email) throw { code: 400, message: 'Please provide a user email' };
 
-  const { rows: [dbUser] } = await db.query('select * from users where email=$1 and status=$2', [email, status], 'Get user from db by email');
+  const [dbUser] = await db.query('select * from users where email=$1 and status=$2', [email, status], 'Get user from db by email');
 
-  if (dbUser && dbUser.email) return dbUser;
-  else return false;
+  return (dbUser ? dbUser : false);
 };
 
 /**
@@ -53,10 +51,9 @@ const getUserByUsername = async function getUserByUsername(username, status = 'v
   // Check if there is no username
   if (!username) throw { code: 400, message: 'Please provide a username' };
 
-  const { rows: [dbUser] } = await db.query('select * from users where username=$1 and status=$2', [username, status], 'Get user from db by username');
+  const [dbUser] = await db.query('select * from users where username=$1 and status=$2', [username, status], 'Get user from db by username');
 
-  if (dbUser && dbUser.username) return dbUser;
-  else return false;
+  return (dbUser ? dbUser : false);
 };
 
 /**
@@ -72,13 +69,9 @@ const checkUsernameAvailablity = async function checkUsernameAvailablity(req) {
 
     await checkRequiredParameters({ username });
 
-    const { rows: [dbUser] } = await db.query('select username from users where username=$1', [username], 'check existing username');
+    const [dbUser] = await db.query('select username from users where username=$1', [username], 'check existing username');
 
-    if (dbUser && dbUser.username === username) {
-      return ({ 'username': dbUser.username });
-    } else if (!dbUser) {
-      return ({ 'username': false });
-    }
+    return { username: dbUser?.username || false };
   } catch (error) {
     srcFileErrorHandler(error, 'Could not check for existing username');
   }

@@ -31,11 +31,7 @@ const deleteUser = async function deleteUser(req, user) {
     if (userDb && userDb.id == userId && password && password !== 'null' && userDb.password !== 'null' && await bcrypt.compare(password, userDb.password)) {
       await db.query('delete from users where id=$1', [userId], 'delete user');
 
-      // Check the user again
-      const userDbDoubleCheck = await getUserById(userId);
-
-      if (!userDbDoubleCheck) return { message: 'Deleted user successfully' };
-      else throw { code: 500, message: 'Could not delete user from db' };
+      return { message: 'Deleted user successfully' };
     } else throw { code: 401, message: 'Please check email and password' };
   } catch (error) {
     srcFileErrorHandler(error, 'Could not delete user');
