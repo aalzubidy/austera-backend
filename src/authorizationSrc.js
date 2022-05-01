@@ -6,7 +6,7 @@ const { logger } = require('../utils/logger');
 const { checkRequiredParameters, srcFileErrorHandler } = require('../utils/srcFile');
 const { sendEmailText } = require('../utils/email');
 const db = require('../utils/db');
-const { addUserVerificationCode, verifyUserVerificationCode, deleteUserVerificationCode } = require('./userVerificationSrc');
+const { addUserVerificationCode, verifyUserVerificationCode, deleteUserVerificationCode } = require('./verificationCodes');
 const { getUserByEmail } = require('./userSrc');
 
 const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
@@ -39,14 +39,16 @@ const registerUser = async function registerUser(req) {
   let createdUserId = false;
 
   try {
+    let { email } = req.body;
     const {
       username,
       password,
-      email,
       ip,
     } = req.body;
 
     await checkRequiredParameters({ username, password, email, ip });
+
+    email = email.trim().toLowerCase();
 
     // Hash the password
     const passwordHashed = await bcrypt.hash(password, 12);
@@ -130,10 +132,13 @@ const verifyRegistrationCode = async function verifyRegistrationCode(req) {
 const login = async function login(req) {
   try {
     // Extract email, password, and ip
-    const { email, password, ip } = req.body;
+    let { email } = req.body;
+    const { password, ip } = req.body;
 
     // Check if there is no email or pin
     await checkRequiredParameters({ email, password, ip });
+
+    email = email.trim().toLowerCase();
 
     // Get user information from database and check if it matches
     const userDb = await getUserByEmail(email);

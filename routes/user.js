@@ -6,8 +6,10 @@ const { callSrcFile, callSrcFileSkipVerify } = require('../utils/srcFileAuthoriz
 /**
  * @summary Check if username is in database
  */
-router.post('/checkUsernameAvailablity', async (req, res) => {
-  callSrcFileSkipVerify(userSrc, 'checkUsernameAvailablity', [req], req, res);
+router.get('/checkUsernameAvailablity/:username', async (req, res) => {
+  const { username } = req.params;
+
+  callSrcFileSkipVerify(userSrc, 'checkUsernameAvailablity', [username], req, res);
 });
 
 module.exports = router;

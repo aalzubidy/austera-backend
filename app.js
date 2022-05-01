@@ -17,13 +17,13 @@ const { routesLogger } = require('./utils/routesLogger');
 // Require routes
 const systemRoutes = require('./routes/system');
 const authorizationRoutes = require('./routes/authorization');
-const userAccountRoutes = require('./routes/userAccount');
+const profileRoutes = require('./routes/profile');
 const userRoutes = require('./routes/user');
 
 // Application Setup
 const app = express();
 const serverPort = 3030;
-const serverUrl = 'localhost';
+const serverUrl = '192.168.0.155';
 
 // App Configurations
 app.use(cors({ credentials: true, origin: 'http://localhost:3000' }));
@@ -68,10 +68,10 @@ app.use(systemRoutes);
 // Authentication routes
 app.use(authorizationRoutes);
 
-// User Account routes
-app.use(userAccountRoutes);
+// User Profile routes
+app.use(profileRoutes);
 
-// User Account routes
+// User routes
 app.use(userRoutes);
 
 // Index Route

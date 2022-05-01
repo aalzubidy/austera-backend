@@ -6,7 +6,7 @@ const { logger } = require('../utils/logger');
 const { checkRequiredParameters, srcFileErrorHandler } = require('../utils/srcFile');
 const { sendEmailText } = require('../utils/email');
 const db = require('../utils/db');
-const { addUserVerificationCode, verifyUserVerificationCode, deleteUserVerificationCode } = require('./userVerificationSrc');
+const { addUserVerificationCode, verifyUserVerificationCode, deleteUserVerificationCode } = require('./verificationCodes');
 const { getUserById, getUserByEmail, getUserByUsername } = require('./userSrc');
 const { isProfaneBulk } = require('../utils/stringTools');
 

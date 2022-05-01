@@ -6,7 +6,7 @@ const { logger } = require('../utils/logger');
 const { checkRequiredParameters, srcFileErrorHandler } = require('../utils/srcFile');
 const { sendEmailText } = require('../utils/email');
 const db = require('../utils/db');
-const { addUserVerificationCode, verifyUserVerificationCode, deleteUserVerificationCode } = require('./userVerificationSrc');
+const { addUserVerificationCode, verifyUserVerificationCode, deleteUserVerificationCode } = require('./verificationCodes');
 
 /**
  * @function getUserById
@@ -59,14 +59,12 @@ const getUserByUsername = async function getUserByUsername(username, status = 'v
 /**
  * @function checkUsernameAvailablity
  * @summary Check if username already in the database
- * @param {*} req http request contains access token and refresh token
+ * @param {string} username - Username to check
  * @returns {object} checkUsernameResults
  * @throws {object} errorCodeAndMsg
  */
-const checkUsernameAvailablity = async function checkUsernameAvailablity(req) {
+const checkUsernameAvailablity = async function checkUsernameAvailablity(username) {
   try {
-    const { username } = req.body;
-
     await checkRequiredParameters({ username });
 
     const [dbUser] = await db.query('select username from users where username=$1', [username], 'check existing username');
