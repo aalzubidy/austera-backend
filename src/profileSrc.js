@@ -9,6 +9,7 @@ const db = require('../utils/db');
 const { addUserVerificationCode, verifyUserVerificationCode, deleteUserVerificationCode } = require('./verificationCodes');
 const { getUserById, getUserByEmail, getUserByUsername } = require('./userSrc');
 const { isProfaneBulk } = require('../utils/stringTools');
+const fileSrc = require('./fileSrc');
 
 /**
  * @function deleteUser
@@ -109,8 +110,35 @@ const updateUserInformation = async function updateUserInformation(username, ema
   }
 };
 
-const updateUserAvatar = async function updateUserAvatar() {
-  return 'not yet implemented';
+/**
+ * @function updateUserAvatar
+ * @summary Update user's profile picture
+ * @param {object} req Http request
+ * @param {object} user User information
+ * @returns {object} updateAvatarResults
+ * @throws {object} errorCodeAndMsg
+ */
+const updateUserAvatar = async function updateUserAvatar(req, user) {
+  let fileUrl = '';
+  try {
+    // Upload user's profile picture locally
+    const uploadFileResults = await fileSrc.uploadAvatarLocally(req);
+    fileUrl = uploadFileResults.fileUrl ? uploadFileResults.fileUrl : '';
+
+    // Check if the user already have an avatar then delete it
+    const [dbUserExistingAvatar] = await db.query('select avatar_url from users where id=$1', [user.id], 'Get existing user avatar_url');
+
+    if (dbUserExistingAvatar.avatar_url) fileSrc.deleteAvatarLocalByUrl(dbUserExistingAvatar.avatar_url);
+
+    // Update user with new avatar url
+    const [dbUser] = await db.query('update users set avatar_url=$1 where id=$2 returning id', [fileUrl, user.id], 'Update user avatar_url');
+
+    if (dbUser.id) return { message: 'Profile picture updated successfully' };
+    else throw { code: 500, message: 'Could not update profile picture' };
+  } catch (error) {
+    if (fileUrl) fileSrc.deleteAvatarLocalByUrl(fileUrl);
+    srcFileErrorHandler(error, 'Could not update user profile picture');
+  }
 };
 
 const requestResetPassword = async function requestResetPassword() {
@@ -123,5 +151,6 @@ const updateExistingPassword = async function updateExistingPassword() {
 
 module.exports = {
   deleteUser,
-  updateUserInformation
+  updateUserInformation,
+  updateUserAvatar
 };

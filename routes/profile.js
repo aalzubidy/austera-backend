@@ -18,4 +18,11 @@ router.patch('/users', async (req, res) => {
   callSrcFile(profileSrc, 'updateUserInformation', [username, email, firstName, lastName, mobile], req, res);
 });
 
+/**
+ * @summary Update user's profile picture
+ */
+router.patch('/users/avatar', async (req, res) => {
+  callSrcFile(profileSrc, 'updateUserAvatar', [req], req, res);
+});
+
 module.exports = router;
