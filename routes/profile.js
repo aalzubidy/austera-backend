@@ -19,6 +19,13 @@ router.patch('/users', async (req, res) => {
 });
 
 /**
+ * @summary Get user's profile picture url
+ */
+router.get('/users/avatar', async (req, res) => {
+  callSrcFile(profileSrc, 'getUserAvatar', [], req, res);
+});
+
+/**
  * @summary Update user's profile picture
  */
 router.patch('/users/avatar', async (req, res) => {

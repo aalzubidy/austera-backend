@@ -111,6 +111,24 @@ const updateUserInformation = async function updateUserInformation(username, ema
 };
 
 /**
+ * @function getUserAvatar
+ * @summary Get user avatar url from database
+ * @param {object} user User object from token
+ * @returns {object} avatarUrl
+ * @throws {object} errorCodeAndMsg
+ */
+const getUserAvatar = async function getUserAvatar(user) {
+  try {
+    // Get user information from database and check if it matches
+    const [userDb] = await db.query('select avatar_url from users where id=$1', [user.id], 'Get user avatar_url from db');
+
+    return (userDb.avatar_url || '');
+  } catch (error) {
+    srcFileErrorHandler(error, 'Could not get user avatar_url');
+  }
+};
+
+/**
  * @function updateUserAvatar
  * @summary Update user's profile picture
  * @param {object} req Http request
@@ -152,5 +170,6 @@ const updateExistingPassword = async function updateExistingPassword() {
 module.exports = {
   deleteUser,
   updateUserInformation,
+  getUserAvatar,
   updateUserAvatar
 };
