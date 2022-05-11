@@ -105,5 +105,5 @@ dist
 
 ignore/*
 
-public/files/userUpload/
-public/files/userUpload/**
+public/files/avatars/
+public/files/avatars/**

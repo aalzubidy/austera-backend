@@ -18,7 +18,7 @@ const storageLocalAvatar = multer.diskStorage({
 const uploadLocalAvatar = multer({
   storage: storageLocalAvatar,
   limits: {
-    fileSize: 4 * 1024 * 1024, // no larger than 4mb
+    fileSize: 5 * 1024 * 1024, // no larger than 5mb
   },
   fileFilter: function (req, file, callback) {
     try {
@@ -47,12 +47,17 @@ const uploadAvatarLocally = function uploadAvatarLocally(req) {
     uploadLocalAvatar(req, null, function (err) {
       if (!req.file) {
         logger.debug({ message: 'Upload avatar skipped, empty avatar' });
-        resolve({ message: 'Empty avatar request', req });
+        if (err) {
+          logger.error({ label: 'Could not upload avatar', results: err });
+          reject(new Error({ code: 500, message: 'Could not upload avatar' }));
+        } else {
+          resolve({ message: 'Empty avatar request', req });
+        }
       }
 
       if (err) {
         logger.error({ label: 'Could not upload avatar', results: err });
-        reject(new Error({ code: 500, message: 'Could not upload avatar' }));
+        throw { code: 500, message: 'Could not upload avatar' };
       } else {
         const fileUrl = req.file.path.replace('public/', '/');
 
