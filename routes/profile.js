@@ -32,4 +32,11 @@ router.patch('/users/avatar', async (req, res) => {
   callSrcFile(profileSrc, 'updateUserAvatar', [req], req, res);
 });
 
+/**
+ * @summary Get user's information from database
+ */
+router.get('/users/information', async (req, res) => {
+  callSrcFile(profileSrc, 'getUserInformationById', [], req, res);
+});
+
 module.exports = router;

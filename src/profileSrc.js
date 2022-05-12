@@ -159,6 +159,25 @@ const updateUserAvatar = async function updateUserAvatar(req, user) {
   }
 };
 
+/**
+ * @function getUserInformationById
+ * @summary Get user information from database by user id
+ * @param {object} user User object from token
+ * @returns {object} userInformation
+ * @throws {object} errorCodeAndMsg
+ */
+const getUserInformationById = async function getUserInformationById(user) {
+  try {
+    // Get user information from database and check if it matches
+    const [userDb] = await db.query('select id, email, username, firstname, lastname, mobile from users where id=$1', [user.id], 'Get user information from db');
+
+    if (userDb) return (userDb);
+    else throw { code: 404, message: 'Could not get user information' };
+  } catch (error) {
+    srcFileErrorHandler(error, 'Could not get user information');
+  }
+};
+
 const requestResetPassword = async function requestResetPassword() {
   return 'not yet implemented';
 };
@@ -171,5 +190,6 @@ module.exports = {
   deleteUser,
   updateUserInformation,
   getUserAvatar,
-  updateUserAvatar
+  updateUserAvatar,
+  getUserInformationById
 };
