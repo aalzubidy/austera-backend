@@ -3,11 +3,12 @@ const randomstring = require('randomstring');
 const bcrypt = require('bcrypt');
 const moment = require('moment');
 const { logger } = require('../utils/logger');
-const { checkRequiredParameters, srcFileErrorHandler } = require('../utils/srcFile');
+const { srcFileErrorHandler } = require('../utils/srcFile');
 const { sendEmailText } = require('../utils/email');
 const db = require('../utils/db');
 const { addUserVerificationCode, verifyUserVerificationCode, deleteUserVerificationCode } = require('./verificationCodes');
 const { getUserByEmail } = require('./userSrc');
+const { isProfaneBulk } = require('../utils/stringTools');
 
 const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
 const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
@@ -22,7 +23,7 @@ const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
  */
 const addUserIP = async function addUserIP(id, ip) {
   // Check if there is no id or password
-  if (!id || !ip) throw { code: 400, message: 'Please provide required information' };
+  if (!id || !ip) throw { code: 400, message: 'Missing required variable(s): id, ip' };
 
   // Add ip to user in the database
   return db.query('update users set ip = ip || $1 where id=$2 and not (ip @> ARRAY[$1]::inet[]) returning id', [ip, id], 'Add user ip');
@@ -39,16 +40,22 @@ const registerUser = async function registerUser(req) {
   let createdUserId = false;
 
   try {
-    let { email } = req.body;
-    const {
-      username,
-      password,
-      ip,
-    } = req.body;
+    let { email, username } = req.body;
+    const { password, ip } = req.body;
 
-    await checkRequiredParameters({ username, password, email, ip });
+    if (!email || !password || !username || !ip) throw { code: 400, message: 'Missing required variable(s): email, password, username, ip' };
 
     email = email.trim().toLowerCase();
+    username = username.trim();
+
+    // Check email pattern
+    if (!email.match(/^[a-zA-Z0-9.!#$%&’*+=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/gm)) throw { code: 400, message: 'Invalid email pattern' };
+
+    // Check username pattern
+    if (!username.match(/^(?=[a-zA-Z0-9._]{2,30}$)(?!.*[_.]{2})[^_.].*[^_.]$/gm)) throw { code: 400, message: 'Username can only be letters and numbers' };
+
+    // Check isProfane
+    // if (await isProfaneBulk([email, username])) throw { code: 400, message: 'Could not pass profane check to create user' };
 
     // Hash the password
     const passwordHashed = await bcrypt.hash(password, 12);
@@ -77,7 +84,7 @@ const registerUser = async function registerUser(req) {
 
     // Send email with the pin
     const subject = 'Your Verification Code is Here';
-    const body = `Your verification code is: ${newPin}, click on the link to activate your account http://localhost:3030/users/${dbUser.id}/verifyRegistration/${newPin}`;
+    const body = `Your verification code is: ${newPin}, click on the link to activate your account http://localhost:3030/auth/verifyRegistration/${dbUser.id}/${newPin}`;
 
     return await sendEmailText(email, subject, body);
   } catch (error) {
@@ -100,7 +107,7 @@ const verifyRegistrationCode = async function verifyRegistrationCode(req) {
       verificationCode
     } = req.params;
 
-    await checkRequiredParameters({ userId, verificationCode });
+    if (!userId || !verificationCode) throw { code: 400, message: 'Missing required variable(s)' };
 
     // Get user verification code from database
     const dbUserCode = await verifyUserVerificationCode(userId, verificationCode, 'new user');
@@ -136,7 +143,7 @@ const login = async function login(req) {
     const { password, ip } = req.body;
 
     // Check if there is no email or pin
-    await checkRequiredParameters({ email, password, ip });
+    if (!email || !password || !ip) throw { code: 400, message: 'Missing required variable(s)' };
 
     email = email.trim().toLowerCase();
 
@@ -146,11 +153,7 @@ const login = async function login(req) {
     if (userDb && userDb.email == email && password && password !== 'null' && userDb.password !== 'null' && await bcrypt.compare(password, userDb.password)) {
       // Generate access token and refresh token
       const userSign = {
-        id: userDb.id,
-        username: userDb.username,
-        firstName: userDb.firstname,
-        lastName: userDb.lastname,
-        avatarUrl: userDb.avatar_url
+        id: userDb.id
       };
 
       const accessToken = await jwt.sign(userSign, accessTokenSecret, { expiresIn: '30m' });
@@ -160,7 +163,7 @@ const login = async function login(req) {
       const loginDate = moment().format('MM/DD/YYYY');
 
       // Update the database with the new refresh token
-      await db.query('update users set refresh_token=$1, login_date=$2 where email=$3', [refreshToken, loginDate, email], 'Set user refresh token');
+      await db.query('update users set refresh_token=$1, login_date=$2 where id=$3', [refreshToken, loginDate, userDb.id], 'Set user refresh token');
 
       // Update user ip
       await addUserIP(userDb.id, ip);
@@ -186,7 +189,7 @@ const logout = async function logout(req) {
     const { token } = req.headers;
     const refreshToken = req.cookies['refresh_token'];
 
-    await checkRequiredParameters({ token, refreshToken });
+    if (!token || !refreshToken) throw { code: 400, message: 'Missing required variable(s)' };
 
     // Verify both tokens
     const tokenVerify = await jwt.verify(token, accessTokenSecret);
@@ -195,7 +198,7 @@ const logout = async function logout(req) {
     if (tokenVerify.id != refreshTokenVerify.id) throw { code: 401, message: 'Please provide valid token and refresh token' };
 
     // Delete refresh token from database
-    const [dbResults] = await db.query("update users set refresh_token='' where refresh_token=$1 and id=$2 returning id", [refreshToken, refreshTokenVerify.id], 'logout user');
+    const [dbResults] = await db.query("update users set refresh_token='' where refresh_token=$1 and id=$2 returning id", [refreshToken, tokenVerify.id], 'logout user');
 
     if (dbResults) {
       return ({ 'results': 'Logged out successful' });
@@ -219,7 +222,7 @@ const logoutByCookie = async function logoutByCookie(req) {
     // Extract refresh token from cookie
     const refreshToken = req.cookies['refresh_token'];
 
-    await checkRequiredParameters({ refreshToken });
+    if (!refreshToken) throw { code: 400, message: 'Missing required variable(s)' };
 
     // Verify refresh token
     const refreshTokenVerify = await jwt.verify(refreshToken, refreshTokenSecret);
@@ -250,19 +253,19 @@ const renewToken = async function renewToken(req) {
     const { token } = req.headers;
     const { refreshToken } = req.body;
 
-    await checkRequiredParameters({ token, refreshToken });
+    if (!token || !refreshToken) throw { code: 400, message: 'Missing required variable(s)' };
 
     // Verify both tokens
     const tokenVerify = await jwt.verify(token, accessTokenSecret);
     const refreshTokenVerify = await jwt.verify(refreshToken, refreshTokenSecret);
 
     // Check the email on both of the tokens
-    if (tokenVerify.id === refreshTokenVerify.id && tokenVerify.username === refreshTokenVerify.username) {
+    if (tokenVerify.id === refreshTokenVerify.id) {
       // Check if this refresh token still active in the database
-      const [queryResults] = await db.query('select id, username, refresh_token from users where refresh_token=$1 and id=$2', [refreshToken, tokenVerify.id], 'get refresh token');
-      if (queryResults?.id === tokenVerify.id && queryResults?.username === tokenVerify.username) {
+      const [queryResults] = await db.query('select id, refresh_token from users where refresh_token=$1 and id=$2', [refreshToken, tokenVerify.id], 'get refresh token');
+      if (queryResults?.id === tokenVerify.id) {
         // Generate a new access token
-        const userSign = { id: tokenVerify.id, username: tokenVerify.username, firstName: tokenVerify.firstName, lastName: tokenVerify.lastName, avatarUrl: tokenVerify.avatarUrl };
+        const userSign = { id: tokenVerify.id };
         const newAccessToken = await jwt.sign(userSign, accessTokenSecret, { expiresIn: '30m' });
 
         // Generate a new refresh token
@@ -297,16 +300,16 @@ const renewTokenByCookie = async function renewTokenByCookie(req) {
     // Extract refresh token from cookie
     const refreshToken = req.cookies['refresh_token'];
 
-    await checkRequiredParameters({ refreshToken });
+    if (!refreshToken) throw { code: 400, message: 'Missing required variable(s)' };
 
     // Verify refresh token
     const refreshTokenVerify = await jwt.verify(refreshToken, refreshTokenSecret);
 
     // Check if this refresh token still active in the database
-    const [queryResults] = await db.query('select id, username, refresh_token from users where refresh_token=$1 and id=$2', [refreshToken, refreshTokenVerify.id]);
+    const [queryResults] = await db.query('select id, refresh_token from users where refresh_token=$1 and id=$2', [refreshToken, refreshTokenVerify.id]);
 
-    if (queryResults?.refresh_token === refreshToken && queryResults?.id === refreshTokenVerify.id && queryResults?.username === refreshTokenVerify.username) {
-      const userSign = { id: refreshTokenVerify.id, username: refreshTokenVerify.username, firstName: refreshTokenVerify.firstName, lastName: refreshTokenVerify.lastName, avatarUrl: refreshTokenVerify.avatarUrl };
+    if (queryResults?.refresh_token === refreshToken && queryResults?.id === refreshTokenVerify.id) {
+      const userSign = { id: refreshTokenVerify.id };
 
       // Generate a new access token
       const newAccessToken = await jwt.sign(userSign, accessTokenSecret, { expiresIn: '30m' });
@@ -340,24 +343,22 @@ const verifyToken = async function verifyToken(req) {
   try {
     const { token } = req.headers;
 
-    console.log(token);
-
-    await checkRequiredParameters({ token });
+    if (!token) throw { code: 400, message: 'Missing required variable(s): token' };
 
     const results = await jwt.verify(token, accessTokenSecret);
 
     if (!results) {
-      throw { code: 401, messages: 'Access denied' };
+      throw { code: 401, messages: 'Token verification failed' };
     }
 
-    return ({ id: results.id, username: results.username, firstName: results.firstName, lastName: results.lastName, avatarUrl: results.avatarUrl });
+    return ({ id: results.id });
   } catch (error) {
     srcFileErrorHandler(error, 'Could not verify token');
   }
 };
 
 /**
- * @function getTokenUser
+ * @function getTokenInformation
  * @summary Get user information from token
  * @param {object} user User information
  * @returns {object} User information
@@ -367,16 +368,12 @@ const getTokenUser = async function getTokenUser(user) {
   try {
     if (user) {
       return {
-        id: user.id,
-        username: user.username,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        avatarUrl: user.avatarUrl
+        id: user.id
       };
     } else {
       throw {
         code: 404,
-        message: 'Could not find user information'
+        message: 'Could not decode token'
       };
     }
   } catch (error) {
@@ -395,9 +392,7 @@ const requestPasswordReset = async function requestPasswordReset(req) {
   try {
     const { username, email } = req.body;
 
-    console.log(username, email);
-
-    await checkRequiredParameters({ username, email });
+    if (!email || !username) throw { code: 400, message: 'Missing required variable(s): email, username' };
 
     const [dbUser] = await db.query('select id, username, email from users where username=$1 and email=$2', [username, email], 'check existing username and email for password reset');
 
@@ -410,7 +405,7 @@ const requestPasswordReset = async function requestPasswordReset(req) {
 
       // Send email with the pin
       const subject = 'Reset Password Request - Your Verification Code is Here';
-      const body = `To continue with your reset password request click on the link: http://localhost:3030/users/${dbUser.id}/verifyPasswordReset/${newPin}`;
+      const body = `To continue with your reset password request click on the link: http://localhost:3030/auth/verifyPasswordReset/${dbUser.id}/${newPin}`;
 
       return await sendEmailText(email, subject, body);
     } else if (!dbUser) {

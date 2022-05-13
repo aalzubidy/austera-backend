@@ -1,4 +1,4 @@
-const Filter = require('bad-words');
+const Filter = require('bad-words-plus');
 const filter = new Filter();
 
 /**
@@ -48,8 +48,9 @@ const cleanBulk = function cleanBulk(itemsToClean) {
 const isProfaneBulk = function isProfaneBulk(itemsToCheck) {
   try {
     return itemsToCheck.some((item) => {
-      if (item) return filter.isProfane(item);
-      else return false;
+      console.log(item);
+      console.log(filter.isProfane(item));
+      return filter.isProfane(item);
     });
   } catch (error) {
     throw { code: 500, message: 'Could not check profane bulk items' };

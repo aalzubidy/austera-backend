@@ -45,17 +45,16 @@ const deleteUser = async function deleteUser(req, user) {
  * @summary Update user's account information
  * @param {string} username New user's username
  * @param {string} email New user's email
- * @param {string} firstName New user's firstName
- * @param {string} lastName New user's lastName
+ * @param {string} fullName New user's fullName
  * @param {string} mobile New user's mobile
  * @param {object} user User object from token
  * @returns {object} updateAccountStatus
  * @throws {object} errorCodeAndMsg
  */
-const updateUserInformation = async function updateUserInformation(username, email, firstName, lastName, mobile, user) {
+const updateUserInformation = async function updateUserInformation(username, email, fullName, mobile, user) {
   try {
     // Check isProfane information
-    if (isProfaneBulk([username, email, firstName, lastName, mobile])) throw { code: 400, message: 'Could not check words in update user information' };
+    if (isProfaneBulk([username, email, fullName, mobile])) throw { code: 400, message: 'Could not check words in update user information' };
 
     let count = 1;
     let updateString = 'update users set(';
@@ -63,8 +62,7 @@ const updateUserInformation = async function updateUserInformation(username, ema
 
     if (username) updateString = `${updateString}username,`;
     if (email) updateString = `${updateString}email,`;
-    if (firstName) updateString = `${updateString}firstname,`;
-    if (lastName) updateString = `${updateString}lastname,`;
+    if (fullName) updateString = `${updateString}fullname,`;
     if (mobile) updateString = `${updateString}mobile,`;
 
     updateString = updateString.substring(0, updateString.length - 1);
@@ -81,15 +79,10 @@ const updateUserInformation = async function updateUserInformation(username, ema
       count += 1;
       updateArray.push(email.trim());
     }
-    if (firstName) {
+    if (fullName) {
       updateString = `${updateString}$${count},`;
       count += 1;
-      updateArray.push(firstName.trim());
-    }
-    if (lastName) {
-      updateString = `${updateString}$${count},`;
-      count += 1;
-      updateArray.push(lastName.trim());
+      updateArray.push(fullName.trim());
     }
     if (mobile) {
       updateString = `${updateString}$${count},`;
@@ -169,7 +162,7 @@ const updateUserAvatar = async function updateUserAvatar(req, user) {
 const getUserInformationById = async function getUserInformationById(user) {
   try {
     // Get user information from database and check if it matches
-    const [userDb] = await db.query('select id, email, username, firstname, lastname, mobile from users where id=$1', [user.id], 'Get user information from db');
+    const [userDb] = await db.query('select id, email, username, fullName, mobile from users where id=$1', [user.id], 'Get user information from db');
 
     if (userDb) return (userDb);
     else throw { code: 404, message: 'Could not get user information' };

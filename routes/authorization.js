@@ -6,14 +6,14 @@ const { callSrcFile, callSrcFileSkipVerify } = require('../utils/srcFileAuthoriz
 /**
  * @summary Register a new user
  */
-router.post('/users', async (req, res) => {
+router.post('/register', async (req, res) => {
   callSrcFileSkipVerify(authorizationSrc, 'registerUser', [req], req, res);
 });
 
 /**
  * @summary Verify user's registration
  */
-router.get('/users/:userId/verifyRegistration/:verificationCode', async (req, res) => {
+router.get('/auth/verifyRegistration/:userId/:verificationCode', async (req, res) => {
   callSrcFileSkipVerify(authorizationSrc, 'verifyRegistrationCode', [req], req, res);
 });
 
@@ -55,7 +55,7 @@ router.post('/renewTokenByCookie', async (req, res) => {
 /**
  * @summary Get user from token
  */
-router.get('/getTokenUser', async (req, res) => {
+router.get('/getTokenInformation', async (req, res) => {
   callSrcFile(authorizationSrc, 'getTokenUser', [], req, res);
 });
 

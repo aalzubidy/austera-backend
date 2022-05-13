@@ -14,8 +14,8 @@ router.delete('/users', async (req, res) => {
  * @summary Update user's account information
  */
 router.patch('/users', async (req, res) => {
-  const { username, email, firstName, lastName, mobile } = req.body;
-  callSrcFile(profileSrc, 'updateUserInformation', [username, email, firstName, lastName, mobile], req, res);
+  const { username, email, fullName, mobile } = req.body;
+  callSrcFile(profileSrc, 'updateUserInformation', [username, email, fullName, mobile], req, res);
 });
 
 /**
