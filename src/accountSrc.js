@@ -7,23 +7,22 @@ const { checkRequiredParameters, srcFileErrorHandler } = require('../utils/srcFi
 const { sendEmailText } = require('../utils/email');
 const db = require('../utils/db');
 const { addUserVerificationCode, verifyUserVerificationCode, deleteUserVerificationCode } = require('./verificationCodes');
-const { getUserById, getUserByEmail, getUserByUsername } = require('./userSrc');
+const { getUserById, getUserByEmail, getUserByUsername } = require('./userInternalSrc');
 const { isProfaneBulk } = require('../utils/stringTools');
 const fileSrc = require('./fileSrc');
 
 /**
- * @function deleteUser
- * @summary Delete user from system
- * @param {*} req http request contains userId, and password
+ * @function deleteAccount
+ * @summary Delete user account
+ * @param {number} userId User's id
+ * @param {string} password User's password
  * @param {object} user User object from token
  * @returns {object} deleteAccountStatus
  * @throws {object} errorCodeAndMsg
  */
-const deleteUser = async function deleteUser(req, user) {
+const deleteAccount = async function deleteAccount(userId, password, user) {
   try {
-    const { userId, password } = req.body;
-
-    await checkRequiredParameters({ userId, password });
+    if (!userId || !password) throw { code: 400, message: 'Missing required variable(s)' };
 
     if (userId !== user.id) throw { code: 403, message: 'Operation not allowed' };
 
@@ -31,17 +30,18 @@ const deleteUser = async function deleteUser(req, user) {
     const userDb = await getUserById(userId);
 
     if (userDb && userDb.id == userId && password && password !== 'null' && userDb.password !== 'null' && await bcrypt.compare(password, userDb.password)) {
-      await db.query('delete from users where id=$1', [userId], 'delete user');
+      await db.query('delete from users where id=$1', [userId], 'delete user account');
 
-      return { message: 'Deleted user successfully' };
+      return { message: 'Deleted user account successfully' };
     } else throw { code: 401, message: 'Please check email and password' };
   } catch (error) {
-    srcFileErrorHandler(error, 'Could not delete user');
+    console.log(error);
+    srcFileErrorHandler(error, 'Could not delete user account');
   }
 };
 
 /**
- * @function updateUserInformation
+ * @function updateAccountInformation
  * @summary Update user's account information
  * @param {string} username New user's username
  * @param {string} email New user's email
@@ -51,10 +51,16 @@ const deleteUser = async function deleteUser(req, user) {
  * @returns {object} updateAccountStatus
  * @throws {object} errorCodeAndMsg
  */
-const updateUserInformation = async function updateUserInformation(username, email, fullName, mobile, user) {
+const updateAccountInformation = async function updateAccountInformation(username, email, fullName, mobile, user) {
   try {
+    // Check email pattern
+    if (!email.match(/^[a-zA-Z0-9.!#$%&’*+=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/gm)) throw { code: 400, message: 'Invalid email pattern' };
+
+    // Check username pattern
+    if (!username.match(/^(?=[a-zA-Z0-9._]{2,30}$)(?!.*[_.]{2})[^_.].*[^_.]$/gm)) throw { code: 400, message: 'Username can only be letters and numbers' };
+
     // Check isProfane information
-    if (isProfaneBulk([username, email, fullName, mobile])) throw { code: 400, message: 'Could not check words in update user information' };
+    if (await isProfaneBulk([username, email, fullName, mobile])) throw { code: 400, message: 'Could not pass profane check to create user' };
 
     let count = 1;
     let updateString = 'update users set(';
@@ -97,39 +103,39 @@ const updateUserInformation = async function updateUserInformation(username, ema
 
     const [dbUser] = await db.query(updateString, updateArray, 'update user information');
 
-    return { 'message': 'Updated user successfully', id: dbUser.id };
+    return { 'message': 'Updated user account successfully', id: dbUser.id };
   } catch (error) {
-    srcFileErrorHandler(error, 'Could not update user');
+    srcFileErrorHandler(error, 'Could not update user account');
   }
 };
 
 /**
- * @function getUserAvatar
- * @summary Get user avatar url from database
+ * @function getAccountAvatarByToken
+ * @summary Get user account avatar url from database by token
  * @param {object} user User object from token
  * @returns {object} avatarUrl
  * @throws {object} errorCodeAndMsg
  */
-const getUserAvatar = async function getUserAvatar(user) {
+const getAccountAvatarByToken = async function getAccountAvatarByToken(user) {
   try {
     // Get user information from database and check if it matches
     const [userDb] = await db.query('select avatar_url from users where id=$1', [user.id], 'Get user avatar_url from db');
 
-    return (userDb.avatar_url || '');
+    return ({ avatarUrl: userDb.avatar_url || '' });
   } catch (error) {
-    srcFileErrorHandler(error, 'Could not get user avatar_url');
+    srcFileErrorHandler(error, 'Could not get user account avatar url');
   }
 };
 
 /**
- * @function updateUserAvatar
+ * @function updateAccountAvatar
  * @summary Update user's profile picture
  * @param {object} req Http request
  * @param {object} user User information
  * @returns {object} updateAvatarResults
  * @throws {object} errorCodeAndMsg
  */
-const updateUserAvatar = async function updateUserAvatar(req, user) {
+const updateAccountAvatar = async function updateAccountAvatar(req, user) {
   let fileUrl = '';
   try {
     // Upload user's profile picture locally
@@ -144,30 +150,30 @@ const updateUserAvatar = async function updateUserAvatar(req, user) {
     // Update user with new avatar url
     const [dbUser] = await db.query('update users set avatar_url=$1 where id=$2 returning id', [fileUrl, user.id], 'Update user avatar_url');
 
-    if (dbUser.id) return { message: 'Profile picture updated successfully' };
-    else throw { code: 500, message: 'Could not update profile picture' };
+    if (dbUser.id) return { message: 'Account avatar updated successfully', avatarUrl: fileUrl };
+    else throw { code: 500, message: 'Could not update account avatar' };
   } catch (error) {
     if (fileUrl) fileSrc.deleteAvatarLocalByUrl(fileUrl);
-    srcFileErrorHandler(error, 'Could not update user profile picture');
+    srcFileErrorHandler(error, 'Could not update user account avatar');
   }
 };
 
 /**
- * @function getUserInformationById
- * @summary Get user information from database by user id
+ * @function getAccountInformationByToken
+ * @summary Get user account information from database by user id
  * @param {object} user User object from token
  * @returns {object} userInformation
  * @throws {object} errorCodeAndMsg
  */
-const getUserInformationById = async function getUserInformationById(user) {
+const getAccountInformationByToken = async function getAccountInformationByToken(user) {
   try {
     // Get user information from database and check if it matches
-    const [userDb] = await db.query('select id, email, username, fullName, mobile from users where id=$1', [user.id], 'Get user information from db');
+    const [userDb] = await db.query('select id, email, username, fullName, mobile, avatar_url from users where id=$1', [user.id], 'Get user information from db');
 
     if (userDb) return (userDb);
-    else throw { code: 404, message: 'Could not get user information' };
+    else throw { code: 404, message: 'Could not get user account information by token' };
   } catch (error) {
-    srcFileErrorHandler(error, 'Could not get user information');
+    srcFileErrorHandler(error, 'Could not get user account information by token');
   }
 };
 
@@ -180,9 +186,9 @@ const updateExistingPassword = async function updateExistingPassword() {
 };
 
 module.exports = {
-  deleteUser,
-  updateUserInformation,
-  getUserAvatar,
-  updateUserAvatar,
-  getUserInformationById
+  deleteAccount,
+  updateAccountInformation,
+  getAccountAvatarByToken,
+  updateAccountAvatar,
+  getAccountInformationByToken
 };

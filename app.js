@@ -17,13 +17,13 @@ const { routesLogger } = require('./utils/routesLogger');
 // Require routes
 const systemRoutes = require('./routes/system');
 const authorizationRoutes = require('./routes/authorization');
-const profileRoutes = require('./routes/profile');
+const accountRoutes = require('./routes/account');
 const userRoutes = require('./routes/user');
 
 // Application Setup
 const app = express();
-const serverPort = 3030;
-const serverUrl = '192.168.0.155';
+const serverUrl = process.env.AUSTERA_SERVER_URL;
+const serverPort = process.env.AUSTERA_SERVER_PORT;
 
 // App Configurations
 app.use(cors({ credentials: true, origin: 'http://localhost:3000' }));
@@ -68,8 +68,8 @@ app.use(systemRoutes);
 // Authentication routes
 app.use(authorizationRoutes);
 
-// User Profile routes
-app.use(profileRoutes);
+// User Account routes
+app.use(accountRoutes);
 
 // User routes
 app.use(userRoutes);

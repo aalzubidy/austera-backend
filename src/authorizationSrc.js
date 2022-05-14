@@ -7,11 +7,13 @@ const { srcFileErrorHandler } = require('../utils/srcFile');
 const { sendEmailText } = require('../utils/email');
 const db = require('../utils/db');
 const { addUserVerificationCode, verifyUserVerificationCode, deleteUserVerificationCode } = require('./verificationCodes');
-const { getUserByEmail } = require('./userSrc');
+const { getUserByEmail } = require('./userInternalSrc');
 const { isProfaneBulk } = require('../utils/stringTools');
 
 const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
 const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
+
+const serverURI = process.env.AUSTERA_SERVER_URI;
 
 /**
  * @function addUserIP
@@ -22,7 +24,7 @@ const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
  * @throws {boolean} false
  */
 const addUserIP = async function addUserIP(id, ip) {
-  // Check if there is no id or password
+  // Check if there is no id or ip
   if (!id || !ip) throw { code: 400, message: 'Missing required variable(s): id, ip' };
 
   // Add ip to user in the database
@@ -84,7 +86,7 @@ const registerUser = async function registerUser(req) {
 
     // Send email with the pin
     const subject = 'Your Verification Code is Here';
-    const body = `Your verification code is: ${newPin}, click on the link to activate your account http://localhost:3030/auth/verifyRegistration/${dbUser.id}/${newPin}`;
+    const body = `Your verification code is: ${newPin}, click on the link to activate your account ${serverURI}/auth/verifyRegistration/${dbUser.id}/${newPin}`;
 
     return await sendEmailText(email, subject, body);
   } catch (error) {
