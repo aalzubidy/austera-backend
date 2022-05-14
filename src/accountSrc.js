@@ -45,13 +45,13 @@ const deleteAccount = async function deleteAccount(userId, password, user) {
  * @summary Update user's account information
  * @param {string} username New user's username
  * @param {string} email New user's email
- * @param {string} fullName New user's fullName
+ * @param {string} fullname New user's fullname
  * @param {string} mobile New user's mobile
  * @param {object} user User object from token
  * @returns {object} updateAccountStatus
  * @throws {object} errorCodeAndMsg
  */
-const updateAccountInformation = async function updateAccountInformation(username, email, fullName, mobile, user) {
+const updateAccountInformation = async function updateAccountInformation(username, email, fullname, mobile, user) {
   try {
     // Check email pattern
     if (!email.match(/^[a-zA-Z0-9.!#$%&’*+=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/gm)) throw { code: 400, message: 'Invalid email pattern' };
@@ -60,7 +60,7 @@ const updateAccountInformation = async function updateAccountInformation(usernam
     if (!username.match(/^(?=[a-zA-Z0-9._]{2,30}$)(?!.*[_.]{2})[^_.].*[^_.]$/gm)) throw { code: 400, message: 'Username can only be letters and numbers' };
 
     // Check isProfane information
-    if (await isProfaneBulk([username, email, fullName, mobile])) throw { code: 400, message: 'Could not pass profane check to create user' };
+    // if (await isProfaneBulk([username, email, fullname, mobile])) throw { code: 400, message: 'Could not pass profane check to create user' };
 
     let count = 1;
     let updateString = 'update users set(';
@@ -68,7 +68,7 @@ const updateAccountInformation = async function updateAccountInformation(usernam
 
     if (username) updateString = `${updateString}username,`;
     if (email) updateString = `${updateString}email,`;
-    if (fullName) updateString = `${updateString}fullname,`;
+    if (fullname) updateString = `${updateString}fullname,`;
     if (mobile) updateString = `${updateString}mobile,`;
 
     updateString = updateString.substring(0, updateString.length - 1);
@@ -85,10 +85,10 @@ const updateAccountInformation = async function updateAccountInformation(usernam
       count += 1;
       updateArray.push(email.trim());
     }
-    if (fullName) {
+    if (fullname) {
       updateString = `${updateString}$${count},`;
       count += 1;
-      updateArray.push(fullName.trim());
+      updateArray.push(fullname.trim());
     }
     if (mobile) {
       updateString = `${updateString}$${count},`;
@@ -105,6 +105,7 @@ const updateAccountInformation = async function updateAccountInformation(usernam
 
     return { 'message': 'Updated user account successfully', id: dbUser.id };
   } catch (error) {
+    console.log(error);
     srcFileErrorHandler(error, 'Could not update user account');
   }
 };
